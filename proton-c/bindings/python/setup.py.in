@@ -25,7 +25,7 @@ import sys
 _c_module = '@SWIG_MODULE_cproton_REAL_NAME@'
 _src_file = '@PN_SWIG_PYTHON_C_WRAPPER@'
 _version =  '@PN_VERSION@'
-_release = 0
+_release = 1
 
 if "--proton-install-prefix" in sys.argv:
     # special option used only if the python headers and library have been
@@ -90,7 +90,7 @@ QPID Proton library.\n%s""" % _help_description
 
 try:
     setup(name="python-qpid-proton",
-          version="%s-%d" % (_version, _release),
+          version="%s.%d" % (_version, _release),
           author="Apache Qpid",
           author_email="dev@qpid.apache.org",
           py_modules=["proton", "cproton"],
