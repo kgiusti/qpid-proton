@@ -25,7 +25,7 @@ import sys
 _c_module = '@SWIG_MODULE_cproton_REAL_NAME@'
 _src_file = '@PN_SWIG_PYTHON_C_WRAPPER@'
 _version =  '@PN_VERSION@'
-_release = 1
+_release = 2
 
 if "--proton-install-prefix" in sys.argv:
     # special option used only if the python headers and library have been
