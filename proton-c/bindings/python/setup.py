@@ -118,6 +118,7 @@ class Configure(build_ext):
         if 'SWIG' in os.environ:
             self.swig = os.environ['SWIG']
 
+        log.warn("KAG: swig_opts=%s" % str(ext.swig_opts))
         try:
             # This will actually call swig to generate the files
             # and list the sources.
@@ -141,7 +142,7 @@ class Configure(build_ext):
         base = self.get_finalized_command('build').build_base
         build_include = os.path.join(base, 'include')
 
-        log.info("Bundling qpid-proton into the extension")
+        log.warn("Bundling qpid-proton into the extension")
 
         # QPID_PROTON_SRC - (optional) pathname to the Proton C sources.  Can
         # be used to override where this setup gets the Proton C sources from
@@ -164,7 +165,7 @@ class Configure(build_ext):
         else:
             libqpid_proton_dir = os.path.abspath(os.environ['QPID_PROTON_SRC'])
 
-        log.debug("Using libqpid-proton src: %s" % libqpid_proton_dir)
+        log.warn("Using libqpid-proton src: %s" % libqpid_proton_dir)
 
         proton_base = os.path.join(libqpid_proton_dir, 'proton-c')
         proton_src = os.path.join(proton_base, 'src')
@@ -295,6 +296,8 @@ class Configure(build_ext):
         # by the Proton objects:
         _cproton.libraries=libraries
 
+        log.warn("KAG: hacked swig_opts=%s" % str(_cproton.swig_opts))
+
     def check_qpid_proton_version(self):
         """check the qpid_proton version"""
 
@@ -319,6 +322,9 @@ class Configure(build_ext):
             _cproton.include_dirs.append(i)
         ldirs = misc.pkg_config_get_var('libdir')
         _cproton.library_dirs.extend(ldirs.split())
+
+        log.warn("KAG: bundled swig_opts=%s" % str(_cproton.swig_opts))
+
 
     def run(self):
         # linux2 for python<2.7
