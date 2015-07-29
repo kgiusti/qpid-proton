@@ -118,10 +118,10 @@ class Configure(build_ext):
         if 'SWIG' in os.environ:
             self.swig = os.environ['SWIG']
 
-        log.warn("KAG: swig_opts=%s" % str(ext.swig_opts))
         try:
             # This will actually call swig to generate the files
             # and list the sources.
+            log.warn("KAG: running swig swig_opts=%s" % str(ext.swig_opts))
             self.swig_sources(ext.sources, ext)
         except (errors.DistutilsExecError, errors.DistutilsPlatformError) as e:
             if not (os.path.exists('cproton_wrap.c') or
