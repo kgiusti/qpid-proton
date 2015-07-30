@@ -32,4 +32,4 @@ script:
 - cd Build
 - cmake .. -DCMAKE_INSTALL_PREFIX=$PWD/install
 - cmake --build . --target install
-- ctest -V
+- ctest -VV -R python-tox-test

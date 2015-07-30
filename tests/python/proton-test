@@ -26,6 +26,8 @@ from getopt import GetoptError
 from logging import getLogger, StreamHandler, Formatter, Filter, \
     WARN, DEBUG, ERROR
 
+print("KAG: sys.platform=%s" % sys.platform)
+
 if sys.version_info[0] == 3:
     CLASS_TYPES = (type,)
 else:
