@@ -329,19 +329,18 @@ class Configure(build_ext):
     def run(self):
         # linux2 for python<2.7
         # linux4 for python<2.6
-        if sys.platform in ['linux', 'linux2', 'linux4']:
-            if self.bundle_proton:
-                self.bundle_libqpid_proton_extension()
-            else:
-                self.use_installed_proton()
+        if self.bundle_proton:
+            self.bundle_libqpid_proton_extension()
+        else:
+            self.use_installed_proton()
 
-            # Do this just on linux since it's the only
-            # platform we support building the bundle for
-            # and especially, it's the only platform we check
-            # the, hopefully installed, qpid-proton version.
-            # This avoids re-using the distributed wrappers with
-            # uncompatible versions.
-            self.prepare_swig_wrap()
+        # Do this just on linux since it's the only
+        # platform we support building the bundle for
+        # and especially, it's the only platform we check
+        # the, hopefully installed, qpid-proton version.
+        # This avoids re-using the distributed wrappers with
+        # uncompatible versions.
+        self.prepare_swig_wrap()
 
 
 class CustomBuildOrder(build):
