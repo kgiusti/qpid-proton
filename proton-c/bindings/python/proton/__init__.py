@@ -3675,8 +3675,11 @@ class SSL(object):
     return self.get_cert_subject_subfield(SSL.CERT_STATE_OR_PROVINCE)
 
   def get_cert_fingerprint(self, fingerprint_length, digest_name):
-    logging.error("HI from fingerprint wrapper!")
-    rc, fingerprint_str = pn_ssl_get_cert_fingerprint(self._ssl, fingerprint_length, digest_name)
+    logging.error("HI from fingerprint wrapper! len=%s name=%s",
+                  fingerprint_length, digest_name)
+    x = pn_ssl_get_cert_fingerprint(self._ssl, fingerprint_length, digest_name)
+    logging.error("fingerprint returned=[%s]", str(x))
+    rc, fingerprint_str = x
     if rc > 0:
       logging.error("Returning %s", fingerprint_str)
       return fingerprint_str
