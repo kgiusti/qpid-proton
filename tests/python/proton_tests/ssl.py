@@ -26,7 +26,7 @@ import subprocess
 import sys
 from proton import *
 from .common import Skipped, pump
-
+import logging
 
 def _testpath(file):
     """ Set the full path to the certificate,keyfile, etc. for the test.
@@ -189,6 +189,10 @@ class SslTest(common.Test):
         if "java" in sys.platform:
             raise Skipped("Not yet implemented in Proton-J")
 
+        logging.warn("TEST SETUP")
+        #logging.error("-------------- test_certificate_fingerprint_and_subfields(self):")
+        #os.environ["PN_TRACE_DRV"] = "1"
+        #os.environ["PN_TRACE_FRM"] = "1"
         self.server_domain.set_credentials(self._testpath("server-certificate.pem"),
                                            self._testpath("server-private-key.pem"),
                                            "server-password")
@@ -208,6 +212,7 @@ class SslTest(common.Test):
         server.connection.open()
         self._pump( client, server )
 
+        logging.warn("START TEST")
         # Test the subject subfields
         self.assertEqual("Client", server.ssl.get_cert_organization())
         self.assertEqual("Dev", server.ssl.get_cert_organization_unit())
@@ -241,6 +246,9 @@ class SslTest(common.Test):
         self.assertNotEqual(None, client.ssl.get_cert_fingerprint(130, SSL.SHA512)) # Should be at least 129
         self.assertNotEqual(None, client.ssl.get_cert_fingerprint(35, SSL.MD5)) # Should be at least 33
         self.assertEqual(None, client.ssl.get_cert_fingerprint_unknown_hash_alg())
+        #del os.environ["PN_TRACE_DRV"]
+        #del os.environ["PN_TRACE_FRM"]
+        logging.error("+++++++++++++++++-------------- DONE!")
 
     def test_client_authentication(self):
         """ Force the client to authenticate.

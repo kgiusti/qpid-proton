@@ -37,6 +37,8 @@ from . import _compat
 
 import weakref, socket, sys, threading
 
+import logging
+
 try:
   import uuid
 
@@ -3640,7 +3642,9 @@ class SSL(object):
   CERT_COMMON_NAME = PN_SSL_CERT_SUBJECT_COMMON_NAME
 
   def get_cert_subject_subfield(self, subfield_name):
+    logging.error("HI from subfield wrapper!")
     subfield_value = pn_ssl_get_remote_subject_subfield(self._ssl, subfield_name)
+    logging.error("Returning %s!", subfield_value)
     return subfield_value
 
   def get_cert_subject(self):
@@ -3671,9 +3675,12 @@ class SSL(object):
     return self.get_cert_subject_subfield(SSL.CERT_STATE_OR_PROVINCE)
 
   def get_cert_fingerprint(self, fingerprint_length, digest_name):
+    logging.error("HI from fingerprint wrapper!")
     rc, fingerprint_str = pn_ssl_get_cert_fingerprint(self._ssl, fingerprint_length, digest_name)
     if rc > 0:
+      logging.error("Returning %s", fingerprint_str)
       return fingerprint_str
+    logging.error("Returning None")
     return None
 
   # Convenience functions for obtaining fingerprint for specific hashing algorithms

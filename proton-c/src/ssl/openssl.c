@@ -178,7 +178,8 @@ static void ssl_log_flush(pn_transport_t* transport)
   unsigned long err = ERR_get_error();
   while (err) {
     ERR_error_string_n(err, buf, sizeof(buf));
-    ssl_log(transport, "%s", buf);
+    //ssl_log(transport, "%s", buf);
+    fprintf(stderr, "%s\n", buf);
     err = ERR_get_error();
   }
 }
@@ -189,7 +190,8 @@ static void ssl_log_error(const char *fmt, ...)
   if (fmt) {
     va_list ap;
     va_start(ap, fmt);
-    ssl_vlog(NULL, fmt, ap);
+    //ssl_vlog(NULL, fmt, ap);
+    vfprintf(stderr, fmt, ap);
     va_end(ap);
   }
 
@@ -1296,6 +1298,8 @@ const char* pn_ssl_get_remote_subject(pn_ssl_t *ssl0)
 
 int pn_ssl_get_cert_fingerprint(pn_ssl_t *ssl0, char *fingerprint, size_t fingerprint_length, pn_ssl_hash_alg hash_alg)
 {
+
+    ssl_log_error("------------------------------------------------------->pn_ssl_get_cert_fingerprint called\n");
     const char *digest_name = NULL;
     size_t min_required_length;
 
@@ -1330,6 +1334,7 @@ int pn_ssl_get_cert_fingerprint(pn_ssl_t *ssl0, char *fingerprint, size_t finger
     }
 
     const EVP_MD  *digest = EVP_get_digestbyname(digest_name);
+    if (!digest) ssl_log_error("DIGEST NULL - WTF???\n");
 
     pni_ssl_t *ssl = get_ssl_internal(ssl0);
 
@@ -1349,6 +1354,7 @@ int pn_ssl_get_cert_fingerprint(pn_ssl_t *ssl0, char *fingerprint, size_t finger
             fingerprint_length = fingerprint_length - 2;
         }
 
+        ssl_log_error("PN_SSL_GET_CERT_FINGERPRINT RETURN OK\n");
         return err_code;
     }
     else {
@@ -1356,6 +1362,7 @@ int pn_ssl_get_cert_fingerprint(pn_ssl_t *ssl0, char *fingerprint, size_t finger
         return PN_ERR;
     }
 
+    ssl_log_error("PN_SSL_GET_CERT_FINGERPRINT RETURN ???\n");
     return 0;
 }
 

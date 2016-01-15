@@ -39,6 +39,8 @@ levels = {
   "ERROR": ERROR
   }
 
+#os.environ["PN_TRACE_DRV"] = "1"
+
 sorted_levels = [(v, k) for k, v in list(levels.items())]
 sorted_levels.sort()
 sorted_levels = [v for k, v in sorted_levels]
@@ -292,13 +294,13 @@ class StreamWrapper:
 
 interceptor = Interceptor()
 
-out_wrp = StreamWrapper(interceptor, sys.stdout)
-err_wrp = StreamWrapper(interceptor, sys.stderr)
+#out_wrp = StreamWrapper(interceptor, sys.stdout)
+#err_wrp = StreamWrapper(interceptor, sys.stderr)
 
-out = sys.stdout
-err = sys.stderr
-sys.stdout = out_wrp
-sys.stderr = err_wrp
+#out = sys.stdout
+#err = sys.stderr
+#sys.stdout = out_wrp
+#sys.stderr = err_wrp
 
 class PatternFilter(Filter):
 
@@ -442,17 +444,18 @@ def run_test(name, test, config):
     output += "%s %s" % (line, (((WIDTH - ST_WIDTH) - len(line))*"."))
   sys.stdout.write(output)
   sys.stdout.flush()
-  interceptor.begin()
+  #interceptor.begin()
   start = time.time()
   try:
     runner = test()
   finally:
-    interceptor.reset()
+    pass
+   # interceptor.reset()
   end = time.time()
-  if interceptor.dirty:
-    if interceptor.last != "\n":
-      sys.stdout.write("\n")
-    sys.stdout.write(output)
+  #if interceptor.dirty:
+  #  if interceptor.last != "\n":
+  #    sys.stdout.write("\n")
+  #  sys.stdout.write(output)
   print(" %s" % colorize_word(runner.status()))
   if runner.failed() or runner.skipped():
     print(runner.get_formatted_exception_trace())
