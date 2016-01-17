@@ -1299,6 +1299,10 @@ int pn_ssl_get_cert_fingerprint(pn_ssl_t *ssl0, char *fingerprint, size_t finger
     const char *digest_name = NULL;
     size_t min_required_length;
 
+    // old versions of python expect fingerprint to contain a valid string on
+    // return from this function
+    fingerprint[0] = 0;
+
     // Assign the correct digest_name value based on the enum values.
     switch (hash_alg) {
         case PN_SSL_SHA1 :
@@ -1340,7 +1344,10 @@ int pn_ssl_get_cert_fingerprint(pn_ssl_t *ssl0, char *fingerprint, size_t finger
 
         unsigned char bytes[64]; // sha512 uses 64 octets, we will use that as the maximum.
 
-        int err_code = X509_digest(cert, digest, bytes, &len);
+        if (X509_digest(cert, digest, bytes, &len) != 1) {
+            ssl_log_error("Failed to extract X509 digest\n");
+            return PN_ERR;
+        }
 
         char *cursor = fingerprint;
 
@@ -1349,14 +1356,12 @@ int pn_ssl_get_cert_fingerprint(pn_ssl_t *ssl0, char *fingerprint, size_t finger
             fingerprint_length = fingerprint_length - 2;
         }
 
-        return err_code;
+        return PN_OK;
     }
     else {
         ssl_log_error("No certificate is available yet \n");
         return PN_ERR;
     }
-
-    return 0;
 }
 
 
@@ -1394,7 +1399,7 @@ const char* pn_ssl_get_remote_subject_subfield(pn_ssl_t *ssl0, pn_ssl_cert_subje
 
     X509_NAME *subject_name = X509_get_subject_name(cert);
 
-    // TODO - A server side cert subject field can have more than one common name like this - Subject: CN=www.domain1.com, CN=www.domain2.com, see https://bugzilla.mozilla.org/show_bug.cgi?id=380656
+    // TODO(gmurthy) - A server side cert subject field can have more than one common name like this - Subject: CN=www.domain1.com, CN=www.domain2.com, see https://bugzilla.mozilla.org/show_bug.cgi?id=380656
     // For now, we will only return the first common name if there is more than one common name in the cert
     int index = X509_NAME_get_index_by_NID(subject_name, openssl_field, -1);
 

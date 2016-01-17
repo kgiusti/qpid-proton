@@ -3647,6 +3647,7 @@ class SSL(object):
     subject = pn_ssl_get_remote_subject(self._ssl)
     return subject
 
+  ##  ???  Can you remove this - it's not part of the _real_ api, right?  ###
   def get_cert_subject_unknown_subfield(self):
     # Pass in an unhandled enum
     return self.get_cert_subject_subfield(10)
@@ -3672,7 +3673,7 @@ class SSL(object):
 
   def get_cert_fingerprint(self, fingerprint_length, digest_name):
     rc, fingerprint_str = pn_ssl_get_cert_fingerprint(self._ssl, fingerprint_length, digest_name)
-    if rc > 0:
+    if rc == PN_OK:
       return fingerprint_str
     return None
 
