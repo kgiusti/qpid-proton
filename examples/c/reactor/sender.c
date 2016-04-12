@@ -45,6 +45,8 @@ static int quiet = 0;
 typedef struct {
     int count;          // # messages to send
     int anon;           // use anonymous link if true
+    int unsettled;      // send all unsettled
+    int acked;          // exit after N acks
     char *target;       // name of destination target
     char *msg_data;     // pre-encoded outbound message
     int msg_len;        // bytes in msg_data
@@ -106,7 +108,9 @@ static void event_handler(pn_handler_t *handler,
                                    pn_dtag((const char *)&tag, sizeof(tag)));
             pn_link_send(sender, data->msg_data, data->msg_len);
             pn_link_advance(sender);
-            if (data->count > 0) {
+            if (data->unsettled) {
+                // leave all messages unsettled
+            } else if (data->count > 0) {
                 // send pre-settled until the last one, then wait for an ack on
                 // the last sent message. This allows the sender to send
                 // messages as fast as possible and then exit when the consumer
@@ -125,31 +129,32 @@ static void event_handler(pn_handler_t *handler,
         pn_delivery_t *dlv = pn_event_delivery(event);
         if (pn_delivery_updated(dlv) && pn_delivery_remote_state(dlv)) {
             uint64_t rs = pn_delivery_remote_state(dlv);
-            int done = 1;
             switch (rs) {
             case PN_RECEIVED:
                 // This is not a terminal state - it is informational, and the
                 // peer is still processing the message.
-                done = 0;
                 break;
             case PN_ACCEPTED:
+                --data->acked;
                 pn_delivery_settle(dlv);
                 if (!quiet) fprintf(stdout, "Send complete!\n");
                 break;
             case PN_REJECTED:
             case PN_RELEASED:
             case PN_MODIFIED:
+                --data->acked;
                 pn_delivery_settle(dlv);
                 fprintf(stderr, "Message not accepted - code:%lu\n", (unsigned long)rs);
                 break;
             default:
                 // ??? no other terminal states defined, so ignore anything else
+                --data->acked;
                 pn_delivery_settle(dlv);
                 fprintf(stderr, "Unknown delivery failure - code=%lu\n", (unsigned long)rs);
                 break;
             }
 
-            if (done) {
+            if (data->acked == 0) {
                 // initiate clean shutdown of the endpoints
                 pn_link_t *link = pn_delivery_link(dlv);
                 pn_link_close(link);
@@ -191,6 +196,7 @@ static void usage(void)
   printf("-n      \tUse an anonymous link [off]\n");
   printf("-i      \tContainer name [SendExample]\n");
   printf("-q      \tQuiet - turn off stdout\n");
+  printf("-u      \tSend all messages unsettled\n");
   printf("message \tA text string to send.\n");
   exit(1);
 }
@@ -216,6 +222,7 @@ int main(int argc, char** argv)
     app_data_t *app_data = GET_APP_DATA(handler);
     memset(app_data, 0, sizeof(app_data_t));
     app_data->count = 1;
+    app_data->acked = 1;
     app_data->target = "examples";
 
     /* Attach the pn_handshaker() handler.  This handler deals with endpoint
@@ -225,7 +232,7 @@ int main(int argc, char** argv)
 
     /* command line options */
     opterr = 0;
-    while((c = getopt(argc, argv, "i:a:c:t:nhq")) != -1) {
+    while((c = getopt(argc, argv, "i:a:c:t:nhqu")) != -1) {
         switch(c) {
         case 'h': usage(); break;
         case 'a': address = optarg; break;
@@ -237,11 +244,16 @@ int main(int argc, char** argv)
         case 'n': app_data->anon = 1; break;
         case 'i': container = optarg; break;
         case 'q': quiet = 1; break;
+        case 'u': app_data->unsettled = 1; break;
         default:
             usage();
             break;
         }
     }
+    if (app_data->unsettled)
+        // wait for all msgs to be acked
+        app_data->acked = app_data->count;
+
     if (optind < argc) msgtext = argv[optind];
 
 
