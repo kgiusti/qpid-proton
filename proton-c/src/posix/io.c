@@ -155,7 +155,6 @@ pn_socket_t pn_listen(pn_io_t *io, const char *host, const char *port)
     close(sock);
     return PN_INVALID_SOCKET;
   }
-  fprintf(stderr, "LISTENER BOUND TO %s:%s\n", host, port);
 
   freeaddrinfo(addr);
 
@@ -195,7 +194,7 @@ pn_socket_t pn_connect(pn_io_t *io, const char *host, const char *port)
       return PN_INVALID_SOCKET;
     }
   }
-  fprintf(stderr, "CLIENT CONNECTED TO TO %s:%s\n", host, port);
+
   freeaddrinfo(addr);
 
   return sock;
@@ -263,7 +262,6 @@ static inline int pn_create_socket(int af, int protocol) {
 
 ssize_t pn_recv(pn_io_t *io, pn_socket_t socket, void *buf, size_t size)
 {
-    fprintf(stderr, "RECV on socket %d\n", (int)socket);
   ssize_t count = recv(socket, buf, size, 0);
   io->wouldblock = count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK);
   if (count < 0) { pn_i_error_from_errno(io->error, "recv"); }

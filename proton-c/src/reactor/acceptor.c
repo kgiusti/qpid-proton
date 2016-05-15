@@ -73,8 +73,6 @@ void pni_acceptor_finalize(pn_selectable_t *sel) {
 
 pn_acceptor_t *pn_reactor_acceptor(pn_reactor_t *reactor, const char *host, const char *port, pn_handler_t *handler) {
   pn_socket_t socket = pn_listen(pn_reactor_io(reactor), host, port);
-  fprintf(stderr, "ACCEPTOR LISTENING ON %s:%s socket %d\n",
-          host, port, (int)socket);
   if (socket == PN_INVALID_SOCKET) {
     return NULL;
   }

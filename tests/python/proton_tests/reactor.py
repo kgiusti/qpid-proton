@@ -550,7 +550,6 @@ class ContainerTest(Test):
             self.peer_hostname = None
 
         def on_start(self, event):
-            logger.error("Server listening on 0.0.0.0:%s" % self.port)
             self.listener = event.container.listen("0.0.0.0:%s" % self.port)
 
         def on_connection_opened(self, event):
@@ -574,17 +573,13 @@ class ContainerTest(Test):
         server_handler = ContainerTest._ServerHandler()
         client_handler = ContainerTest._ClientHandler()
         container = Container(server_handler)
-        # container.connect(url=Url(host="127.0.0.1",
-        #                           port=server_handler.port),
-        #                   handler=client_handler)
-        container.connect(url=Url(host="localhost",
+        container.connect(url=Url(host="127.0.0.1",
                                   port=server_handler.port),
                           handler=client_handler)
-
         container.run()
         assert server_handler.client_addr
         assert client_handler.server_addr
-        #assert server_handler.peer_hostname == "127.0.0.1", server_handler.peer_hostname
+        assert server_handler.peer_hostname == "127.0.0.1", server_handler.peer_hostname
         assert client_handler.server_addr.rsplit(':', 1)[1] == str(server_handler.port)
 
     def test_non_numeric_hostname(self):
