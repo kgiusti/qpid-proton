@@ -551,8 +551,8 @@ class ContainerTest(Test):
             self.peer_hostname = None
 
         def on_start(self, event):
-            logger.error("Server listening on 0.0.0.0:%s" % self.port)
-            self.listener = event.container.listen("0.0.0.0:%s" % self.port)
+            logger.error("Server listening on 127.0.0.1:%s" % self.port)
+            self.listener = event.container.listen("127.0.0.1:%s" % self.port)
 
         def on_connection_opened(self, event):
             self.client_addr = event.reactor.get_connection_address(event.connection)
