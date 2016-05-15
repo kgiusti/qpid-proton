@@ -20,7 +20,6 @@ from __future__ import absolute_import
 
 import time
 import sys
-import logging as logger
 from .common import Test, SkipTest, TestServer, free_tcp_port, ensureCanTestExtendedSASL
 from proton.reactor import Container, Reactor, ApplicationEvent, EventInjector
 from proton.handlers import CHandshaker, MessagingHandler
@@ -551,13 +550,11 @@ class ContainerTest(Test):
             self.peer_hostname = None
 
         def on_start(self, event):
-            logger.error("Server listening on localhost:%s" % self.port)
-            self.listener = event.container.listen("localhost:%s" % self.port)
+            self.listener = event.container.listen("0.0.0.0:%s" % self.port)
 
         def on_connection_opened(self, event):
             self.client_addr = event.reactor.get_connection_address(event.connection)
             self.peer_hostname = event.connection.remote_hostname
-            logger.error("Server peer hostname:%s" % self.peer_hostname)
 
         def on_connection_closing(self, event):
             event.connection.close()
@@ -570,7 +567,6 @@ class ContainerTest(Test):
 
         def on_connection_opened(self, event):
             self.server_addr = event.reactor.get_connection_address(event.connection)
-            logger.error("client opened: server addr: %s" % self.server_addr)
             event.connection.close()
 
     def test_numeric_hostname(self):
@@ -617,22 +613,15 @@ class ContainerTest(Test):
         # explicitly setting an empty virtual host should prevent the hostname
         # field from being sent in the Open performative
         if "java" in sys.platform:
-            logger.error("Java! Skipping....")
             # This causes Python Container to *not* set the connection virtual
             # host, so when proton-j sets up the connection the virtual host
             # seems to be unset and the URL's host is used (as expected).
             raise SkipTest("Does not apply for proton-j");
-        import os
-        os.environ["PN_TRACE_FRM"] = "1"
-        os.environ["PN_TRACE_DRV"] = "1"
         server_handler = ContainerTest._ServerHandler()
         container = Container(server_handler)
-        logger.error("Client connecting to URL = %s:%s" % ("localhost", server_handler.port))
         conn = container.connect(url=Url(host="localhost",
                                          port=server_handler.port),
                                  handler=ContainerTest._ClientHandler(),
                                  virtual_host="")
         container.run()
-        del os.environ["PN_TRACE_FRM"]
-        del os.environ["PN_TRACE_DRV"]
         assert server_handler.peer_hostname is None, server_handler.peer_hostname

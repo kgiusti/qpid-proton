@@ -184,7 +184,6 @@ void pni_handle_bound(pn_reactor_t *reactor, pn_event_t *event) {
       pn_transport_close_tail(transport);
       pn_transport_close_head(transport);
   } else {
-      fprintf(stderr, "KAG: connect to %s:%s\n", host, port );
       pn_socket_t sock = pn_connect(pn_reactor_io(reactor), host, port);
       // invalid sockets are ignored by poll, so we need to do this manualy
       if (sock == PN_INVALID_SOCKET) {
@@ -195,7 +194,6 @@ void pni_handle_bound(pn_reactor_t *reactor, pn_event_t *event) {
           pn_transport_close_head(transport);
       } else {
           pn_reactor_selectable_transport(reactor, sock, transport);
-          fprintf(stderr, "KAG: connected!!!!! to %s:%s\n", host, port );
       }
   }
   pn_free(str);

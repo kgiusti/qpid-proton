@@ -28,7 +28,6 @@
 #include "selectable.h"
 
 #include <string.h>
-#include <stdio.h>
 
 pn_selectable_t *pn_reactor_selectable_transport(pn_reactor_t *reactor, pn_socket_t sock, pn_transport_t *transport);
 
@@ -39,9 +38,7 @@ PN_HANDLE(PNI_ACCEPTOR_CONNECTION)
 void pni_acceptor_readable(pn_selectable_t *sel) {
   pn_reactor_t *reactor = (pn_reactor_t *) pni_selectable_get_context(sel);
   char name[1024];
-  fprintf(stderr, "ACCEPTING SOCKET\n");
   pn_socket_t sock = pn_accept(pn_reactor_io(reactor), pn_selectable_get_fd(sel), name, 1024);
-  fprintf(stderr, "SOCKET accepted fd=%d name=[%s]\n", (int)sock, name);
   pn_handler_t *handler = (pn_handler_t *) pn_record_get(pn_selectable_attachments(sel), PNI_ACCEPTOR_HANDLER);
   if (!handler) { handler = pn_reactor_get_handler(reactor); }
   pn_record_t *record = pn_selectable_attachments(sel);

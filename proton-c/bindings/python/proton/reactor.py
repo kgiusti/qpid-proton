@@ -721,7 +721,6 @@ class Container(Reactor):
         connector.password = kwargs.get('password', self.password)
         connector.virtual_host = kwargs.get('virtual_host')
         if connector.virtual_host:
-            logging.error("CLIENT virthost: [%s]" % connector.virtual_host)
             # only set hostname if virtual-host is a non-empty string
             conn.hostname = connector.virtual_host
 
@@ -864,7 +863,6 @@ class Container(Reactor):
         on the interface and port specified.
         """
         url = Url(url)
-        logging.error("Creating acceptor on %s:%s" % (url.host, url.port))
         acceptor = self.acceptor(url.host, url.port)
         ssl_config = ssl_domain
         if not ssl_config and url.scheme == 'amqps':
