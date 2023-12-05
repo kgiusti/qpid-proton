@@ -87,7 +87,7 @@ namespace {
       ::shutdown(fd, SHUT_WR);
   }
 
-  long snd(int fd, const void* b, size_t s) {
+  long snd(int fd, const void* b, size_t s, bool /*ignore*/) {
     write_err = 0;
     if (max_send_size && max_send_size < s) s = max_send_size;
     return ::send(fd, b, s, MSG_NOSIGNAL | MSG_DONTWAIT);
