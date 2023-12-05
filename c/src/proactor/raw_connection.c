@@ -42,6 +42,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+// ZZZ inttypes just for debug print PRI
+#include <inttypes.h>
 
 #include "raw_connection-internal.h"
 
@@ -64,6 +66,7 @@ void pni_raw_initialize(pn_raw_connection_t *conn) {
   conn->wbuffer_first_empty = 1;
 
   conn->state = conn_init;
+  if (getenv("ZZZmm")) conn->msg_more = true;
 }
 
 typedef enum {
@@ -259,6 +262,9 @@ bool pni_raw_validate(pn_raw_connection_t *conn) {
 }
 
 void pni_raw_finalize(pn_raw_connection_t *conn) {
+  if (conn->msg_more) {
+    printf("msg_more %p  totw %" PRIu64 " totmm%" PRIu64 " \n", (void *) conn, conn->totw, conn->totwm);
+  }
   pn_condition_free(conn->condition);
   pn_collector_free(conn->collector);
   pn_free(conn->attachments);
@@ -561,7 +567,7 @@ finished_reading:
   return;
 }
 
-void pni_raw_write(pn_raw_connection_t *conn, int sock, long (*send)(int, const void*, size_t), void(*set_error)(pn_raw_connection_t *, const char *, int)) {
+void pni_raw_write(pn_raw_connection_t *conn, int sock, long (*send)(int, const void*, size_t, bool), void(*set_error)(pn_raw_connection_t *, const char *, int)) {
   assert(conn);
 
   if (pni_raw_wdrained(conn)) return;
@@ -573,7 +579,8 @@ void pni_raw_write(pn_raw_connection_t *conn, int sock, long (*send)(int, const 
     assert(conn->wbuffers[p-1].type == buff_unwritten);
     char *bytes = conn->wbuffers[p-1].bytes+conn->wbuffers[p-1].offset+conn->unwritten_offset;
     size_t s = conn->wbuffers[p-1].size-conn->unwritten_offset;
-    int r = send(sock,  bytes, s);
+    bool more = conn->msg_more ? (conn->wbuffers[p-1].next != 0) : false;
+    int r = send(sock,  bytes, s, more);
     if (r < 0) {
       // Interrupted system call try again
       switch (errno) {
@@ -604,6 +611,7 @@ void pni_raw_write(pn_raw_connection_t *conn, int sock, long (*send)(int, const 
       break;
     }
 
+    conn->totw++; if (more) conn->totwm++;
     conn->unwritten_offset = 0;
 
     if (!conn->wbuffer_first_written) {
