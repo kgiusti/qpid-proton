@@ -1503,8 +1503,11 @@ int pn_do_transfer(pn_transport_t *transport, uint8_t frame_type, uint16_t chann
   ssn->state.incoming_window--;
 
   // XXX: need better policy for when to refresh window
-  if (!ssn->state.incoming_window && (int32_t) link->state.local_handle >= 0) {
-    pni_post_flow(transport, ssn, link);
+  if ((int32_t) link->state.local_handle >= 0 && ssn->state.incoming_window < ssn->incoming_window_lwm) {
+    if (!ssn->check_flow) {
+      ssn->check_flow = true;
+      pn_modified(ssn->connection, &link->endpoint, false);
+    }
   }
 
   return 0;
@@ -1961,6 +1964,8 @@ static int pni_process_ssn_setup(pn_transport_t *transport, pn_endpoint_t *endpo
       }
       state->incoming_window = pni_session_incoming_window(ssn);
       state->outgoing_window = pni_session_outgoing_window(ssn);
+      if (!ssn->lwm_user_set)
+        ssn->incoming_window_lwm = (state->incoming_window + 1) / 2;
       /* "DL[?HIIII]" */
       pn_bytes_t buf = pn_amqp_encode_DLEQHIIIIe(&transport->scratch_space, BEGIN,
                     ((int16_t) state->remote_channel >= 0), state->remote_channel,
@@ -2087,6 +2092,7 @@ static int pni_process_link_setup(pn_transport_t *transport, pn_endpoint_t *endp
 
 static int pni_post_flow(pn_transport_t *transport, pn_session_t *ssn, pn_link_t *link)
 {
+  ssn->check_flow = false;
   ssn->state.incoming_window = pni_session_incoming_window(ssn);
   ssn->state.outgoing_window = pni_session_outgoing_window(ssn);
   bool linkq = (bool) link;
@@ -2104,6 +2110,15 @@ static int pni_post_flow(pn_transport_t *transport, pn_session_t *ssn, pn_link_t
   return pn_framing_send_amqp(transport, ssn->state.local_channel, buf);
 }
 
+static inline bool pni_session_need_flow(pn_session_t *ssn) {
+  if (ssn->check_flow && ssn->state.incoming_window < ssn->incoming_window_lwm &&
+      pni_session_incoming_window(ssn) > ssn->state.incoming_window)
+    return true;
+
+  ssn->check_flow = false;
+  return false;
+}
+
 static int pni_process_flow_receiver(pn_transport_t *transport, pn_endpoint_t *endpoint)
 {
   if (endpoint->type == RECEIVER && endpoint->state & PN_LOCAL_ACTIVE)
@@ -2113,7 +2128,7 @@ static int pni_process_flow_receiver(pn_transport_t *transport, pn_endpoint_t *e
     pn_link_state_t *state = &rcv->state;
     if ((int16_t) ssn->state.local_channel >= 0 &&
         (int32_t) state->local_handle >= 0 &&
-        ((rcv->drain || state->link_credit != rcv->credit - rcv->queued) || !ssn->state.incoming_window)) {
+        ((rcv->drain || state->link_credit != rcv->credit - rcv->queued) || pni_session_need_flow(ssn))) {
       state->link_credit = rcv->credit - rcv->queued;
       return pni_post_flow(transport, ssn, rcv);
     }
@@ -2283,7 +2298,7 @@ static int pni_process_tpwork_receiver(pn_transport_t *transport, pn_delivery_t 
   }
 
   // XXX: need to centralize this policy and improve it
-  if (!ssn->state.incoming_window) {
+  if (pni_session_need_flow(ssn)) {
     int err = pni_post_flow(transport, ssn, link);
     if (err) return err;
   }
@@ -3118,4 +3133,28 @@ pn_connection_t *pn_transport_connection(pn_transport_t *transport)
 {
   assert(transport);
   return transport->connection;
+}
+
+
+pn_sequence_t pni_session_get_remote_incoming_window(pn_session_t *ssn) {
+  return ssn->state.remote_incoming_window;
+}
+
+pn_sequence_t pni_session_get_incoming_window_lwm(pn_session_t *ssn) {
+  return ssn->incoming_window_lwm;
+}
+
+bool pni_session_set_incoming_window_lwm(pn_session_t *ssn, pn_sequence_t lwm) {
+  if (ssn->incoming_window_lwm) {
+    if (ssn->connection->transport && ssn->connection->transport->local_max_frame && ssn->incoming_capacity) {
+      size_t maxwin = ssn->incoming_capacity / ssn->connection->transport->local_max_frame;
+      if (lwm > 0 && lwm <= maxwin) {
+        ssn->incoming_window_lwm = lwm;
+        ssn->check_flow = true;
+        ssn->lwm_user_set = true;
+        return true;
+      }
+    }
+  }
+  return false;
 }

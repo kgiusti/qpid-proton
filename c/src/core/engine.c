@@ -1017,6 +1017,9 @@ pn_session_t *pn_session(pn_connection_t *conn)
   ssn->outgoing_deliveries = 0;
   ssn->outgoing_window = AMQP_MAX_WINDOW_SIZE;
   ssn->local_handle_max = PN_IMPL_HANDLE_MAX;
+  ssn->incoming_window_lwm = 0;
+  ssn->check_flow = false;
+  ssn->lwm_user_set = false;
 
   // begin transport state
   memset(&ssn->state, 0, sizeof(ssn->state));
@@ -1068,6 +1071,19 @@ void pn_session_set_incoming_capacity(pn_session_t *ssn, size_t capacity)
   assert(ssn);
   // XXX: should this trigger a flow?
   ssn->incoming_capacity = capacity;
+  if (ssn->connection->transport && ssn->connection->transport->local_max_frame && capacity) {
+    pn_sequence_t oldlwm = ssn->incoming_window_lwm;
+    pn_sequence_t maxwin = capacity / ssn->connection->transport->local_max_frame;
+    if (ssn->lwm_user_set) {
+      if (ssn->incoming_window_lwm > maxwin)
+        ssn->incoming_window_lwm = maxwin; // force back within legal range
+    } else {
+      ssn->incoming_window_lwm = (maxwin + 1) / 2;
+    }
+    if (oldlwm != ssn->incoming_window_lwm) {
+      ssn->check_flow = true;
+    }
+  }
 }
 
 size_t pn_session_get_outgoing_window(pn_session_t *ssn)
@@ -1779,11 +1795,16 @@ static void pni_advance_receiver(pn_link_t *link)
   link->session->incoming_deliveries--;
 
   pn_delivery_t *current = link->current;
-  link->session->incoming_bytes -= pn_buffer_size(current->bytes);
+  size_t drop_count = pn_buffer_size(current->bytes);
   pn_buffer_clear(current->bytes);
 
-  if (!link->session->state.incoming_window) {
-    pni_add_tpwork(current);
+  if (drop_count) {
+    pn_session_t *ssn = link->session;
+    ssn->incoming_bytes -= drop_count;
+    if (!ssn->check_flow && ssn->state.incoming_window < ssn->incoming_window_lwm) {
+      ssn->check_flow = true;
+      pni_add_tpwork(current);
+    }
   }
 
   link->current = link->current->unsettled_next;
@@ -1931,8 +1952,10 @@ ssize_t pn_link_recv(pn_link_t *receiver, char *bytes, size_t n)
   size_t size = pn_buffer_get(delivery->bytes, 0, n, bytes);
   pn_buffer_trim(delivery->bytes, size, 0);
   if (size) {
-    receiver->session->incoming_bytes -= size;
-    if (!receiver->session->state.incoming_window) {
+    pn_session_t *ssn = receiver->session;
+    ssn->incoming_bytes -= size;
+    if (!ssn->check_flow && ssn->state.incoming_window < ssn->incoming_window_lwm) {
+      ssn->check_flow = true;
       pni_add_tpwork(delivery);
     }
     return size;
