@@ -293,6 +293,18 @@ PN_EXTERN pn_session_t *pn_session_next(pn_session_t *session, pn_state_t state)
  * @}
  */
 
+// Very experimental...
+PN_EXTERN pn_sequence_t pni_session_get_remote_incoming_window(pn_session_t *session);
+
+// Low water mark.  Flow frames sent if window below but not equal to this value.
+// 0 is invalid, because any of
+//                max_frame_size not set,
+//                incoming_capacity not set,
+//                no associated transport
+PN_EXTERN pn_sequence_t pni_session_get_incoming_window_lwm(pn_session_t *session);
+// true means set.  false means no session flow control or lwm not in range 1-full_incoming_window.
+PN_EXTERN bool pni_session_set_incoming_window_lwm(pn_session_t *session, pn_sequence_t lwm);
+
 #ifdef __cplusplus
 }
 #endif
