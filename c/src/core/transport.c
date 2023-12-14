@@ -1136,6 +1136,7 @@ int pn_do_begin(pn_transport_t *transport, uint8_t frame_type, uint16_t channel,
   } else {
     ssn = pn_session(transport->connection);
   }
+  ssn->state.remote_incoming_window = incoming_window;
   ssn->state.incoming_transfer_count = next;
   if (handle_max_q) {
     ssn->state.remote_handle_max = handle_max;
@@ -1503,11 +1504,8 @@ int pn_do_transfer(pn_transport_t *transport, uint8_t frame_type, uint16_t chann
   ssn->state.incoming_window--;
 
   // XXX: need better policy for when to refresh window
-  if ((int32_t) link->state.local_handle >= 0 && ssn->state.incoming_window < ssn->incoming_window_lwm) {
-    if (!ssn->check_flow) {
-      ssn->check_flow = true;
+  if ((int32_t) link->state.local_handle >= 0 && pni_session_need_flow(ssn)) {
       pn_modified(ssn->connection, &link->endpoint, false);
-    }
   }
 
   return 0;
@@ -2110,13 +2108,25 @@ static int pni_post_flow(pn_transport_t *transport, pn_session_t *ssn, pn_link_t
   return pn_framing_send_amqp(transport, ssn->state.local_channel, buf);
 }
 
-static inline bool pni_session_need_flow(pn_session_t *ssn) {
-  if (ssn->check_flow && ssn->state.incoming_window < ssn->incoming_window_lwm &&
-      pni_session_incoming_window(ssn) > ssn->state.incoming_window)
-    return true;
+bool pni_session_need_flow(pn_session_t *ssn) {
+#if 0
+  /* if (ssn->check_flow && ssn->state.incoming_window < ssn->incoming_window_lwm && */
+  /*     pni_session_incoming_window(ssn) > ssn->state.incoming_window) */
+  /*   return true; */
+  /* ssn->check_flow = false; */
+  /* return false; */
+    ssn->check_flow = ssn->check_flow || (ssn->state.incoming_window < ssn->incoming_window_lwm &&
+                                          pni_session_incoming_window(ssn) > ssn->incoming_window_lwm);
+    return ssn->check_flow;
+#else
 
-  ssn->check_flow = false;
-  return false;
+    // KAG: idea - rate limit flow frames by sending only when the current incoming window is incoming_window_lwm frames
+    // greater than the last window value sent to the remote peer.
+    if (!ssn->check_flow) {
+        ssn->check_flow = (pni_session_incoming_window(ssn) - ssn->state.incoming_window) >= ssn->incoming_window_lwm;
+    }
+    return ssn->check_flow;
+#endif
 }
 
 static int pni_process_flow_receiver(pn_transport_t *transport, pn_endpoint_t *endpoint)

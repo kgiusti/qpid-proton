@@ -384,6 +384,10 @@ void pn_ep_decref(pn_endpoint_t *endpoint);
 
 ssize_t pni_transport_grow_capacity(pn_transport_t *transport, size_t n);
 
+// KAG: needed in engine.c and transport.c (optional: centralizes the code that determines if a flow frame needs to be
+// generated):
+bool pni_session_need_flow(pn_session_t *ssn);
+
 #if __cplusplus
 }
 #endif

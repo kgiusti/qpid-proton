@@ -1801,8 +1801,7 @@ static void pni_advance_receiver(pn_link_t *link)
   if (drop_count) {
     pn_session_t *ssn = link->session;
     ssn->incoming_bytes -= drop_count;
-    if (!ssn->check_flow && ssn->state.incoming_window < ssn->incoming_window_lwm) {
-      ssn->check_flow = true;
+    if (pni_session_need_flow(ssn)) {
       pni_add_tpwork(current);
     }
   }
@@ -1954,8 +1953,7 @@ ssize_t pn_link_recv(pn_link_t *receiver, char *bytes, size_t n)
   if (size) {
     pn_session_t *ssn = receiver->session;
     ssn->incoming_bytes -= size;
-    if (!ssn->check_flow && ssn->state.incoming_window < ssn->incoming_window_lwm) {
-      ssn->check_flow = true;
+    if (pni_session_need_flow(ssn)) {
       pni_add_tpwork(delivery);
     }
     return size;

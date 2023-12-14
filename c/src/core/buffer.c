@@ -35,9 +35,12 @@
 
 struct pn_buffer_t {
   char *bytes;
-  uint32_t capacity;
-  uint32_t start;
-  uint32_t size;
+    //uint32_t capacity;
+    //uint32_t start;
+    //uint32_t size;
+    uint64_t capacity;
+    uint64_t start;
+    uint64_t size;
 };
 
 PN_STRUCT_CLASSDEF(pn_buffer)
