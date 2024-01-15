@@ -1136,6 +1136,7 @@ int pn_do_begin(pn_transport_t *transport, uint8_t frame_type, uint16_t channel,
   } else {
     ssn = pn_session(transport->connection);
   }
+  ssn->state.remote_incoming_window = incoming_window;
   ssn->state.incoming_transfer_count = next;
   if (handle_max_q) {
     ssn->state.remote_handle_max = handle_max;
